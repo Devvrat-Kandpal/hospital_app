@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Patient Mode - CareSync</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .card h3 {
+            margin-top: 0;
+            color: #28a745;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background: #218838; }
+        .message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .slots-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .slot-btn {
+            background: #28a745;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .slot-btn:hover { background: #218838; }
+        .slot-unavailable {
+            background: #dc3545;
+            cursor: not-allowed;
+        }
+        .appointment-info {
+            background: #e8f4fd;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👤 Patient Mode</h1>
+            <a href="/" class="back-btn">← Back</a>
+        </div>
+
+        <div class="card">
+            <h3>📅 Book New Appointment</h3>
+            <div class="form-group">
+                <label>Doctor Type</label>
+                <select id="doctorSelect">
+                    <option value="physician">👨‍⚕️ Physician (General Consultancy, Tests)</option>
+                    <option value="surgeon">🔪 Surgeon (Surgery)</option>
+                    <option value="radiologist">📷 Radiologist (X-Ray, Ultrasound)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Appointment Type</label>
+                <select id="typeSelect">
+                    <option value="1">General Consultancy (30 min)</option>
+                    <option value="2">Blood Test/Vaccination (30 min)</option>
+                    <option value="3">ECG Test (1 hour)</option>
+                    <option value="4">Routine Checkup (1 hour)</option>
+                    <option value="5">Minor Surgery (1 hour)</option>
+                    <option value="6">Major Surgery (3 hours)</option>
+                    <option value="7">X-Ray (30 min)</option>
+                    <option value="8">Ultrasound (1 hour)</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label>Available Time Slots</label>
+                <div id="slotsContainer" class="slots-grid">Select doctor and appointment type first</div>
+            </div>
+            
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="patientName" placeholder="Enter your full name">
+            </div>
+            
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="text" id="contact" placeholder="Enter phone number">
+            </div>
+            
+            <div class="form-group">
+                <label>Auto-rescheduling</label>
+                <select id="reschedule">
+                    <option value="no">No</option>
+                    <option value="yes">Yes (get earlier slot if available)</option>
+                </select>
+            </div>
+            
+            <button onclick="bookAppointment()">Book Appointment</button>
+            <div id="bookMessage"></div>
+        </div>
+
+        <div class="card">
+            <h3>🔍 View/Cancel Appointment</h3>
+            <div class="form-group">
+                <label>Contact Number</label>
+                <input type="text" id="viewContact" placeholder="Enter your phone number">
+            </div>
+            <button onclick="viewAppointment()">View Appointment</button>
+            <div id="viewResult"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentSlots = [];
+        let selectedSlot = null;
+        
+        const typeNames = {
+            1: 'General Consultancy', 2: 'Blood Test/Vaccination', 3: 'ECG Test',
+            4: 'Routine Checkup', 5: 'Minor Surgery', 6: 'Major Surgery',
+            7: 'X-Ray', 8: 'Ultrasound'
+        };
+        
+        function slotToTime(slot) {
+            const times = ["9:00","9:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"];
+            return times[slot-1];
+        }
+        
+        async function loadAvailableSlots() {
+            const doctor = document.getElementById('doctorSelect').value;
+            const choice = document.getElementById('typeSelect').value;
+            
+            if (!doctor || !choice) return;
+            
+            const response = await fetch(`/api/available_slots_with_duration/${doctor}/${choice}`);
+            const data = await response.json();
+            currentSlots = data.slots;
+            
+            const container = document.getElementById('slotsContainer');
+            if (currentSlots.length === 0) {
+                container.innerHTML = '<p style="color: red;">No available slots for this appointment type</p>';
+                return;
+            }
+            
+            container.innerHTML = '<div style="width:100%; margin-bottom:10px;">Click on a time slot to select:</div>';
+            for (let slot of currentSlots) {
+                const btn = document.createElement('button');
+                btn.className = 'slot-btn';
+                btn.textContent = slotToTime(slot);
+                btn.onclick = () => selectSlot(slot, btn);
+                container.appendChild(btn);
+            }
+        }
+        
+        function selectSlot(slot, btn) {
+            // Remove highlight from all buttons
+            document.querySelectorAll('.slot-btn').forEach(b => {
+                b.style.border = 'none';
+            });
+            btn.style.border = '3px solid #ffc107';
+            selectedSlot = slot;
+        }
+        
+        async function bookAppointment() {
+            const name = document.getElementById('patientName').value;
+            const contact = document.getElementById('contact').value;
+            const doctor = document.getElementById('doctorSelect').value;
+            const choice = parseInt(document.getElementById('typeSelect').value);
+            const reschedule = document.getElementById('reschedule').value;
+            
+            if (!name || !contact) {
+                showMessage('bookMessage', 'Please fill all fields', 'error');
+                return;
+            }
+            
+            if (!selectedSlot) {
+                showMessage('bookMessage', 'Please select a time slot', 'error');
+                return;
+            }
+            
+            const response = await fetch('/api/book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    name: name,
+                    contact: contact,
+                    choice: choice,
+                    timeslot: selectedSlot,
+                    reschedule: reschedule
+                })
+            });
+            
+            const data = await response.json();
+            if (data.success) {
+                showMessage('bookMessage', data.message, 'success');
+                document.getElementById('patientName').value = '';
+                document.getElementById('contact').value = '';
+                selectedSlot = null;
+                loadAvailableSlots();
+            } else {
+                showMessage('bookMessage', data.message, 'error');
+            }
+        }
+        
+        async function viewAppointment() {
+            const contact = document.getElementById('viewContact').value;
+            if (!contact) {
+                showMessage('viewResult', 'Enter contact number', 'error');
+                return;
+            }
+            
+            const response = await fetch(`/api/view/${contact}`);
+            const data = await response.json();
+            
+            if (data.found) {
+                let cancelHtml = `<button onclick="cancelAppointment('${contact}')" style="background:#dc3545; margin-top:10px;">Cancel Appointment</button>`;
+                showMessage('viewResult', 
+                    `✅ Appointment Found<br>
+                    <strong>Doctor:</strong> ${data.doctor}<br>
+                    <strong>Patient:</strong> ${data.name}<br>
+                    <strong>Time:</strong> ${data.time}<br>
+                    <strong>Type:</strong> ${data.type}<br>
+                    <strong>Auto-reschedule:</strong> ${data.reschedule}${cancelHtml}`,
+                    'success');
+            } else {
+                showMessage('viewResult', data.message, 'error');
+            }
+        }
+        
+        async function cancelAppointment(contact) {
+            // Need to get the appointment type first
+            const response = await fetch(`/api/view/${contact}`);
+            const data = await response.json();
+            if (!data.found) return;
+            
+            // Map type to choice number
+            let choice = 1;
+            for (let [num, name] of Object.entries(typeNames)) {
+                if (name === data.type) choice = parseInt(num);
+            }
+            
+            const cancelResponse = await fetch('/api/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contact: contact, choice: choice })
+            });
+            
+            const cancelData = await cancelResponse.json();
+            if (cancelData.success) {
+                showMessage('viewResult', cancelData.message, 'success');
+                document.getElementById('viewContact').value = '';
+            } else {
+                showMessage('viewResult', cancelData.message, 'error');
+            }
+        }
+        
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="message ${type}">${message}</div>`;
+            setTimeout(() => { if (el.innerHTML) el.innerHTML = ''; }, 5000);
+        }
+        
+        document.getElementById('doctorSelect').addEventListener('change', loadAvailableSlots);
+        document.getElementById('typeSelect').addEventListener('change', loadAvailableSlots);
+        loadAvailableSlots();
+    </script>
+</body>
+</html>

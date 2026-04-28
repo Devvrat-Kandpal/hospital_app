@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Mode - CareSync</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+        .doctor-selector {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        select, button {
+            padding: 10px 15px;
+            margin: 10px 5px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .schedule {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+        }
+        .appointment-card {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .appointment-booked { background: #fff3cd; border-left: 5px solid #ffc107; }
+        .complete-btn {
+            background: #28a745;
+            color: white;
+            padding: 8px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .time-badge {
+            background: #007bff;
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            display: inline-block;
+            margin-bottom: 8px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👨‍⚕️ Doctor Mode</h1>
+            <a href="/" class="back-btn">← Back</a>
+        </div>
+
+        <div class="doctor-selector">
+            <h3>Select Doctor</h3>
+            <select id="doctorSelect">
+                <option value="physician">Dr. Smith (General Physician)</option>
+                <option value="surgeon">Dr. Kumar (General Surgeon)</option>
+                <option value="radiologist">Dr. Priya (Radiologist)</option>
+            </select>
+            <button onclick="loadSchedule()">View Schedule</button>
+        </div>
+
+        <div class="schedule" id="schedule">
+            <p>Select a doctor above to view schedule</p>
+        </div>
+    </div>
+
+    <script>
+        function slotToTime(slot) {
+            const times = ["9:00","9:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"];
+            return times[slot-1];
+        }
+        
+        async function loadSchedule() {
+            const doctor = document.getElementById('doctorSelect').value;
+            const response = await fetch(`/api/doctor_schedule/${doctor}`);
+            const data = await response.json();
+            
+            const scheduleDiv = document.getElementById('schedule');
+            let html = `<h3>📋 ${data.doctor}'s Schedule</h3>`;
+            html += `<table>`;
+            html += `<tr><th>Time</th><th>Patient</th><th>Contact</th><th>Type</th><th>Status</th><th>Action</th></tr>`;
+            
+            let bookedCount = 0;
+            for (let apt of data.appointments) {
+                if (apt.status === 'booked') {
+                    bookedCount++;
+                    html += `<tr style="background:#fff3cd;">
+                        <td><strong>${apt.time}</strong></td>
+                        <td>${apt.name}</td>
+                        <td>${apt.contact}</td>
+                        <td>${apt.type}</td>
+                        <td>🟡 Booked</td>
+                        <td><button onclick="markComplete('${doctor}', ${apt.timeslot})" style="background:#28a745; padding:5px 10px;">✓ Complete</button></td>
+                    </tr>`;
+                } else if (apt.status === 'available') {
+                    html += `<tr style="opacity:0.6;">
+                        <td>${apt.time}</td>
+                        <td colspan="4">Available</td>
+                        <td>-</td>
+                    </tr>`;
+                }
+            }
+            
+            html += `</table>`;
+            html += `<p style="margin-top:20px;"><strong>Summary:</strong> ${bookedCount} appointments pending</p>`;
+            scheduleDiv.innerHTML = html;
+        }
+        
+        async function markComplete(doctor, timeslot) {
+            const response = await fetch('/api/mark_complete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ doctor: doctor, timeslot: timeslot })
+            });
+            const data = await response.json();
+            if (data.success) {
+                alert('✓ Appointment marked as completed');
+                loadSchedule();
+            } else {
+                alert('Failed to mark as completed');
+            }
+        }
+        
+        loadSchedule();
+    </script>
+</body>
+</html>

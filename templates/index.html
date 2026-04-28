@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hospital Management System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+        
+        .mode-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .mode-card {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 25px;
+            text-decoration: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: block;
+        }
+        
+        .mode-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .mode-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+        
+        .mode-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        
+        .mode-desc {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .patient { border-top: 4px solid #28a745; }
+        .doctor { border-top: 4px solid #007bff; }
+        .admin { border-top: 4px solid #dc3545; }
+        
+        .credits {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 12px;
+            color: #999;
+        }
+        
+        .credits a {
+            color: #667eea;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏥 CareSync</h1>
+        <p class="subtitle">Hospital Appointment Management System</p>
+        
+        <div class="mode-grid">
+            <a href="/patient" class="mode-card patient">
+                <div class="mode-icon">👤</div>
+                <div class="mode-title">Patient Mode</div>
+                <div class="mode-desc">Book or view appointments</div>
+            </a>
+            
+            <a href="/doctor" class="mode-card doctor">
+                <div class="mode-icon">👨‍⚕️</div>
+                <div class="mode-title">Doctor Mode</div>
+                <div class="mode-desc">View schedule & manage patients</div>
+            </a>
+            
+            <a href="/admin" class="mode-card admin">
+                <div class="mode-icon">🔧</div>
+                <div class="mode-title">Admin Mode</div>
+                <div class="mode-desc">Full system control</div>
+            </a>
+        </div>
+        
+        <div class="credits">
+            <strong>Contributors:</strong> Devvrat Kandpal,Devvrat Bisla,Ishan Kashyap,Jaya,Sangam Yadav<br>
+    </div>
+</body>
+</html>

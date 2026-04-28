@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Mode - CareSync</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+        .admin-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .cancel-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+        }
+        input, button {
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        .refresh-btn {
+            background: #28a745;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f8f9fa;
+        }
+        .doctor-section {
+            margin-bottom: 30px;
+        }
+        .doctor-title {
+            background: #667eea;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        .cancel-link {
+            color: #dc3545;
+            cursor: pointer;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔧 Admin Mode</h1>
+            <a href="/" class="back-btn">← Back</a>
+        </div>
+
+        <div class="cancel-section">
+            <h3>🔍 Cancel Any Appointment</h3>
+            <input type="text" id="cancelContact" placeholder="Patient Phone Number">
+            <button onclick="adminCancel()">Cancel Appointment</button>
+            <button onclick="refreshData()" class="refresh-btn">🔄 Refresh</button>
+            <div id="cancelResult"></div>
+        </div>
+
+        <div class="admin-panel">
+            <h3>📊 All Appointments (All Doctors)</h3>
+            <div id="appointmentsTable">Loading...</div>
+        </div>
+    </div>
+
+    <script>
+        function slotToTime(slot) {
+            const times = ["9:00","9:30","10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30","19:00","19:30","20:00","20:30"];
+            return times[slot-1];
+        }
+        
+        async function refreshData() {
+            const response = await fetch('/api/all_appointments');
+            const data = await response.json();
+            
+            let html = '';
+            
+            for (let [doctor, appointments] of Object.entries(data)) {
+                let doctorDisplay = '';
+                if (doctor === 'physician') doctorDisplay = '👨‍⚕️ Physician - Dr. Smith';
+                else if (doctor === 'surgeon') doctorDisplay = '🔪 Surgeon - Dr. Kumar';
+                else doctorDisplay = '📷 Radiologist - Dr. Priya';
+                
+                html += `<div class="doctor-section">`;
+                html += `<div class="doctor-title">${doctorDisplay}</div>`;
+                html += `<table>`;
+                html += `<tr><th>Time</th><th>Patient</th><th>Contact</th><th>Type</th><th>Reschedule</th><th>Action</th></tr>`;
+                
+                if (appointments.length === 0) {
+                    html += `<tr><td colspan="6">No appointments scheduled</td></tr>`;
+                } else {
+                    for (let apt of appointments) {
+                        html += `<tr>
+                            <td><strong>${slotToTime(apt.timeslot)}</strong></td>
+                            <td>${apt.name}</td>
+                            <td>${apt.contact}</td>
+                            <td>${apt.type}</td>
+                            <td>${apt.reschedule || 'no'}</td>
+                            <td><span class="cancel-link" onclick="adminCancelByContact('${apt.contact}')">Cancel</span></td>
+                        </tr>`;
+                    }
+                }
+                
+                html += `</table></div><br>`;
+            }
+            
+            document.getElementById('appointmentsTable').innerHTML = html;
+        }
+        
+        async function adminCancel() {
+            const contact = document.getElementById('cancelContact').value;
+            if (!contact) {
+                showMessage('cancelResult', 'Enter phone number', 'error');
+                return;
+            }
+            await adminCancelByContact(contact);
+            document.getElementById('cancelContact').value = '';
+        }
+        
+        async function adminCancelByContact(contact) {
+            const response = await fetch('/api/admin_cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contact: contact })
+            });
+            const data = await response.json();
+            if (data.success) {
+                showMessage('cancelResult', `✓ Cancelled appointment for ${contact}`, 'success');
+                refreshData();
+            } else {
+                showMessage('cancelResult', data.message, 'error');
+            }
+        }
+        
+        function showMessage(elementId, message, type) {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div style="padding:10px; border-radius:8px; margin-top:10px; background:${type === 'success' ? '#d4edda' : '#f8d7da'}; color:${type === 'success' ? '#155724' : '#721c24'}">${message}</div>`;
+            setTimeout(() => { if (el.innerHTML) el.innerHTML = ''; }, 3000);
+        }
+        
+        refreshData();
+        setInterval(refreshData, 30000);
+    </script>
+</body>
+</html>
